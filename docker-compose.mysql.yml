@@ -1,0 +1,41 @@
+name: banterfc-mysql
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: banterfc-mysql
+    restart: unless-stopped
+    environment:
+      # Required by the image; also declared in .env.mysql
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "${MYSQL_HOST_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # Optional custom MySQL config (safe to remove if not needed)
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      # Put your schema file in ./initdb/ as 001_banterfc_schema.sql to auto-import on first run
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    networks: [banterfc-net]
+
+networks:
+  banterfc-net:
+    name: banterfc-net
+
+volumes:
+  mysql-data:
+    name: banterfc-mysql-data
+
